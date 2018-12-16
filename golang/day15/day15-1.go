@@ -2,28 +2,209 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
-	"regexp"
+	"sort"
 )
 
-func process(datafile string) {
+type Actor struct {
+	id int
+	hp int
+	c Coord
+	isGoblin bool
+}
+
+type Coord struct {
+	x int
+	y int
+}
+
+type Element rune
+const (
+	WALL = '#'
+	SPACE = '.'
+	GOBLIN = 'G'
+	ELF = 'E'
+)
+
+func process(datafile string) ([][]Element, []*Actor) {
 
 	file, _ := os.Open(datafile)
 	s := bufio.NewScanner(file)
 
-	r_stub, _ := regexp.Compile(`^stub$`)
-
+	gmap := make([][]Element, 0)
+	actors := make([]*Actor, 0)
+	y := 0
+	actorId := 0
 	for s.Scan() {
 		line := s.Text()
-		res_stub := r_stub.FindStringSubmatch(line)
 
+		mapline := make([]Element,len(line))
+		for x, c := range line {
+			switch c {
+			case '#':
+				mapline[x] = WALL
+			case '.':
+				mapline[x] = SPACE
+			case 'G':
+			case 'E':
+				actor := new(Actor)
+				actor.id = actorId
+				actorId += 1
+				actor.hp = 300
+				actor.c.x = x
+				actor.c.y = y
+				if c == 'E' {
+					actor.isGoblin = false
+					mapline[x] = ELF
+				} else {
+					actor.isGoblin = true
+					mapline[x] = GOBLIN
+				}
+				actors = append(actors, actor)
+			}
+		}
+		gmap = append(gmap, mapline)
+		y += 1
 	}
 
+	return gmap, actors
 }
 
+func targetInRange(e Actor, gmap [][]Element) {
+}
+
+func getNeighbourCoords(a *Actor) []Coord {
+	return []Coord {
+		Coord{a.c.x - 1, a.c.y},
+		Coord{a.c.x - 1, a.c.y + 1},
+		Coord{a.c.x, a.c.y - 1},
+		Coord{a.c.x, a.c.y + 1},
+	}
+}
+
+func sortActorsByHp(actors []*Actor) []*Actor{
+	sort.Slice(actors, func(i, j int) bool {
+		return actors[i].hp < actors[j].hp
+	})
+	return actors
+}
+
+func sortActorsByLoc(actors []*Actor) []*Actor{
+	sort.Slice(actors, func(i, j int) bool {
+		if actors[i].c.y < actors[j].c.y {
+			return true
+		}
+		if actors[i].c.y > actors[j].c.y {
+			return false
+		}
+		return actors[i].c.x < actors[j].c.x
+	})
+	return actors
+}
+
+func getNearestNeighbouringTarget(e *Actor, actors []*Actor) *Actor {
+	nb := make([]*Actor, 0)
+	nc := getNeighbourCoords(e)
+
+	for _, a := range actors {
+		if a.hp <= 0 {
+			continue
+		}
+		for _, n := range nc {
+			if a.c == n {
+				nb = append(nb, a)
+			}
+		}
+	}
+	if len(nb) > 0 {
+		return sortActorsByLoc(sortActorsByHp(nb))[0]
+	} else {
+		return nil
+	}
+}
+
+func findTargets(e *Actor, actors []*Actor) []*Actor {
+	targets := make([]*Actor, 0)
+	actors = sortActorsByLoc(actors)
+	for _, a := range actors {
+		if e != a && e.isGoblin != a.isGoblin && a.hp > 0 {
+			targets = append(targets, a)
+		}
+	}
+	return targets
+}
+
+func attack(attacker *Actor, target *Actor) bool {
+	target.hp -= 3
+	return target.hp <= 0
+}
+
+func removeActor(actor *Actor, actors []*Actor) []*Actor {
+	for pos := 0; pos < len(actors); pos++ {
+		if actors[pos].id == actor.id {
+			actors = append(actors[:pos], actors[pos+1:]...)
+			break
+		}
+	}
+	return actors
+}
+
+func runGame(gmap [][]Element, actors []*Actor) {
+
+	done := false
+	for !done {
+		// Get active actors in reading list order
+		actors = sortActorsByLoc(actors)
+		for _, actor := range actors {
+
+			// Get nearest neighbouring targets
+			target := getNearestNeighbouringTarget(actor, actors)
+
+			// If there was a nearest neighbour, attack it
+			if target != nil {
+				isDead := attack(actor, target)
+
+				// Did the attack kill the target, if so remove it
+				// from the list of active actors
+				if isDead {
+					actors = removeActor(target, actors)
+				}
+			} else {
+				// Otherwise find nearest target to move to
+
+			}
+
+			// are there no targets left?
+			if remainingTargets(actors, actor.isGoblin) {
+				fmt.Println("No more targets")
+				done = true
+			}
+		}
+	}
+}
+
+func remainingTargets(actors []*Actor, isGoblin bool) bool {
+	for _, a := range actors {
+		if a.isGoblin != isGoblin && a.hp > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func printMap(gmap [][]rune) {
+	for i:=0; i<len(gmap); i+=1 {
+		for j:=0; j<len(gmap[i]); j+=1 {
+			fmt.Print(string(gmap[i][j]))
+		}
+		fmt.Println("")
+	}
+}
 
 func main() {
 //	process("input.dat")
-	process("test.dat")
+	gmap, actors := process("test.dat")
+	runGame(gmap, actors)
 }
 
