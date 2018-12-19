@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"regexp"
 	"strconv"
@@ -54,16 +55,16 @@ func process(datafile string) {
 	}
 
 	// create our data plot
-	offsetx := mapmin["x"]
-	offsety := mapmin["y"]
-	data := make([][]Element, mapmax["y"]-offsety)
-	for y := 0; y < mapmax["y"]-offsety; y++ {
-		data[y] = make([]Element, mapmax["x"]-offsetx)
+	offsetx := 10
+	data := make([][]Element, mapmax["y"]+1)
+	for y := 0; y < mapmax["y"]+1; y++ {
+		data[y] = make([]Element, mapmax["x"]+offsetx)
 		for i, _ := range data[y] {
 			data[y][i] = SAND
 		}
 	}
 
+	fmt.Printf("Size of grid is %d x %d\n",len(data),len(data[0]))
 	// fill it with data
 	for _, line := range lines {
 		r_x_val, _ := regexp.Compile(`x=([\d\.]+)`)
@@ -76,12 +77,15 @@ func process(datafile string) {
 				// range of x for y
 				minx1, minx2 := getMinMax(res_x[1])
 				yval, _ := strconv.Atoi(res_y[1])
+				fmt.Printf("Min max is %d, %d and y is %d\n", minx1,minx2,yval)
 				for i := minx1; i < minx2; i++ {
+					fmt.Printf("Fuck? %d,%d\n",yval,i)
 					data[yval][i] = CLAY
 				}
 			} else if strings.Contains(res_y[1], "..") {
 				// range of y for x
 				miny1, miny2 := getMinMax(res_y[1])
+				fmt.Printf("Min max is %d, %d\n", miny1,miny2)
 				xval, _ := strconv.Atoi(res_x[1])
 				for i := miny1; i < miny2; i++ {
 					data[i][xval] = CLAY
@@ -94,11 +98,23 @@ func process(datafile string) {
 			}
 		}
 	}
+	data[0][500] = WATER_FLOW
+
+	printGrid(data)
+}
+
+func printGrid(grid [][]Element) {
+	for _, r := range grid {
+		for _, v := range r {
+			fmt.Print(string(v))
+		}
+		fmt.Println()
+	}
 }
 
 func getMinMax(s string) (int,int) {
 	v1, v2 := 0, 0
-	r_val, _ := regexp.Compile(`.=(\d+)..(\d+)`)
+	r_val, _ := regexp.Compile(`(\d+)..(\d+)`)
 	res_val := r_val.FindStringSubmatch(s)
 	if res_val != nil {
 		v1, _ = strconv.Atoi(res_val[1])
@@ -112,6 +128,6 @@ func getMinMax(s string) (int,int) {
 
 func main() {
 	process("input.dat")
-	process("test.dat")
+	//process("test.dat")
 }
 
