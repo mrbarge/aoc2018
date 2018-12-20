@@ -70,7 +70,7 @@ func countType(acreType Acre, acres [][]Acre) int {
 }
 
 
-	func tick(acres [][]Acre) [][]Acre {
+func tick(acres [][]Acre) [][]Acre {
 	retacre := make([][]Acre, len(acres))
 	for i, v := range acres {
 		retacre[i] = make([]Acre,len(v))
