@@ -137,9 +137,10 @@ func process2(datafile string) {
 		bestX, bestY, bestZ := 0, 0, 0
 		x, y, z := minX, minY, minZ
 		for x <= maxX+1 {
+			y = minY
 			for y <= maxY+1 {
+				z = minZ
 				for z <= maxZ+1 {
-					//fmt.Printf("Repeat %d - ",z)
 					bc := 0
 					dummy := Bot{x,y,z,0}
 					for _, bot := range bots {
@@ -171,6 +172,7 @@ func process2(datafile string) {
 
 		if riter == 1 {
 			fmt.Printf("Best Count: %d\n",bestCount)
+			fmt.Printf("Best Distance: %d\n",bestDist)
 			fmt.Printf("Best coords: %d,%d,%d\n",bestX,bestY,bestZ)
 			done = true
 		} else {
